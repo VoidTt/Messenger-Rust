@@ -5,9 +5,22 @@ import type { Message } from "../types/message";
 
 const props = defineProps<{
   messages: Message[];
+  currentUserId: number;  //  <--
+}>();
+const emit = defineEmits<{
+  edit: [id: number, body: string];
+  delete: [id: number];
 }>();
 
 const messagesContainer = ref<HTMLElement | null>(null);
+
+function handleEdit(id: number, body: string) {
+  emit("edit", id, body);
+}
+
+function handleDelete(id: number) {
+  emit("delete", id);
+}
 
 async function scrollToBottom() {
   await nextTick();
@@ -15,16 +28,13 @@ async function scrollToBottom() {
   const container = messagesContainer.value;
   if (!container) return;
 
-  // Первый скролл после отрисовки сообщений
   container.scrollTop = container.scrollHeight;
 
-  // Даём изображениям время изменить высоту контейнера
   requestAnimationFrame(() => {
     if (!container) return;
     container.scrollTop = container.scrollHeight;
   });
 
-  // Дополнительная страховка после загрузки картинок
   setTimeout(() => {
     if (!container) return;
     container.scrollTop = container.scrollHeight;
@@ -51,12 +61,15 @@ watch(
     >
     </div>
 
-    <MessageBubble
-        v-for="message in messages"
-        :key="message.id"
-        :message="message"
-        @image-loaded="scrollToBottom"
-    />
+    <<MessageBubble
+      v-for="message in messages"
+      :key="message.id"
+      :message="message"
+      :current-user-id="currentUserId"
+      @image-loaded="scrollToBottom"
+      @edit="handleEdit"
+      @delete="handleDelete"
+  />
   </div>
 </template>
 

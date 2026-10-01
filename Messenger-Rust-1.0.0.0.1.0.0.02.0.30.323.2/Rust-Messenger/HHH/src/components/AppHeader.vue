@@ -9,7 +9,7 @@ defineProps<{
 <template>
   <header class="header">
     <div>
-      <h1>Vibe Chat 67</h1>
+      <h1>MessengerMAX</h1>
       <p>{{ status }}</p>
     </div>
     <span class="badge">

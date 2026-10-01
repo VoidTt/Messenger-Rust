@@ -1,27 +1,62 @@
 <script setup lang="ts">
 import type { Message } from "../types/message";
-import { computed, onMounted, onUnmounted, ref } from "vue";
+import { computed, onMounted, onUnmounted, ref, watch } from "vue";
 import { convertFileSrc } from "@tauri-apps/api/core";
+import { appLocalDataDir, join } from "@tauri-apps/api/path";
 
 const props = defineProps<{
   message: Message;
+  currentUserId: number;
 }>();
 
 const emit = defineEmits<{
   imageLoaded: [];
+  edit: [id: number, body: string];
+  delete: [id: number];
 }>();
 
 const isImage = computed(() => {
   return props.message.body.startsWith("__IMAGE__:");
 });
 
-const imagePath = computed(() => {
-  if (!isImage.value) return "";
-
-  const path = props.message.body.substring("__IMAGE__:".length);
-
-  return convertFileSrc(path, "asset");
+const isMine = computed(() => {
+  return props.message.author_id === props.currentUserId;
 });
+
+const canManage = computed(() => {
+  return props.message.author_id === props.currentUserId;
+});
+
+const imagePath = ref("");
+
+async function updateImagePath() {
+  if (!isImage.value) {
+    imagePath.value = "";
+    return;
+  }
+
+  try {
+    const relativePath = props.message.body.substring(
+        "__IMAGE__:".length
+    );
+
+    const basePath = await appLocalDataDir();
+
+    const fullPath = await join(
+        basePath,
+        relativePath
+    );
+
+    imagePath.value = convertFileSrc(
+        fullPath,
+        "asset"
+    );
+
+  } catch (err) {
+    console.error("Ошибка получения пути изображения:", err);
+    imagePath.value = "";
+  }
+}
 
 const isPreviewOpen = ref(false);
 const zoom = ref(1);
@@ -58,9 +93,69 @@ function handleKeydown(event: KeyboardEvent) {
   }
 }
 
+/*
+ * Самый простой вариант редактирования:
+ * обычное окно prompt().
+ */
+function editMessage() {
+  if (isImage.value) return;
+
+  const newBody = window.prompt(
+      props.message.body
+  );
+
+  if (newBody === null) {
+    return;
+  }
+
+  const trimmed = newBody.trim();
+
+  if (!trimmed) {
+    return;
+  }
+
+  if (trimmed === props.message.body) {
+    return;
+  }
+
+  emit(
+      "edit",
+      props.message.id,
+      trimmed
+  );
+}
+
+/*
+ * Удаление с обычным подтверждением.
+ */
+function deleteMessage() {
+  const confirmed = window.confirm(
+      "Are you sure?"
+  );
+
+  if (!confirmed) {
+    return;
+  }
+
+  emit(
+      "delete",
+      props.message.id
+  );
+}
+
+watch(
+    () => props.message.body,
+    () => {
+      updateImagePath();
+    },
+    { immediate: true }
+);
+
 onMounted(() => {
   window.addEventListener("keydown", handleKeydown);
-  window.addEventListener("wheel", handleWheel, { passive: false });
+  window.addEventListener("wheel", handleWheel, {
+    passive: false
+  });
 });
 
 onUnmounted(() => {
@@ -71,19 +166,52 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <article class="message">
+  <article
+      class="message"
+      :class="{
+      mine: isMine,
+      other: !isMine
+    }"
+  >
+    <div class="message-author">
+      {{ message.author }}
+    </div>
+
     <template v-if="isImage">
       <img
           class="message-image"
           :src="imagePath"
-          alt="Чёткая фотка"
+          alt="Чёткое фото"
           @load="emit('imageLoaded')"
           @click="openImage"
       />
     </template>
-    <p v-else>
-      {{ message.body }}
-    </p>
+
+    <template v-else>
+      <p>
+        {{ message.body }}
+      </p>
+    </template>
+
+    <div class="message-actions">
+
+      <button v-if="!isImage && canManage"
+              type="button"
+              title="Редактировать"
+              @click.stop="editMessage"
+        >
+        ✏
+      </button>
+
+      <button v-if="canManage"
+              type="button"
+              title="Удалить"
+              @click.stop="deleteMessage">
+        🗑
+      </button>
+
+    </div>
+
   </article>
   <Teleport to="body">
     <div
@@ -124,6 +252,23 @@ onUnmounted(() => {
   border-radius: 10px;
   background: #386be0;
 }
+.message.mine {
+  align-self: flex-end;
+}
+
+.message.other {
+  align-self: flex-start;
+}
+
+.message-author {
+  margin-bottom: 4px;
+
+  font-size: 11px;
+  line-height: 1.2;
+  font-weight: 700;
+
+  color: #cbd7ff;
+}
 
 .message p {
   margin: 0;
@@ -156,7 +301,37 @@ onUnmounted(() => {
   transform: scale(1.02);
   opacity: 0.92;
 }
+.message-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 5px;
+  margin-top: 6px;
+}
 
+.message-actions button {
+  width: 26px;
+  height: 26px;
+  padding: 0;
+
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 6px;
+
+  background: rgba(0, 0, 0, 0.18);
+  color: #ffffff;
+
+  cursor: pointer;
+
+  font-size: 13px;
+
+  transition:
+      background 0.15s ease,
+      transform 0.15s ease;
+}
+
+.message-actions button:hover {
+  background: rgba(0, 0, 0, 0.3);
+  transform: scale(1.05);
+}
 .image-preview {
   position: fixed;
   inset: 0;
