@@ -79,7 +79,7 @@ async function initDatabase() {
 async function initDatabaseSchema() {
   if (!db) return;
 
-  // Таблица пользователей
+
   await db.execute(`
     CREATE TABLE IF NOT EXISTS users (
       id INTEGER PRIMARY KEY,
@@ -87,7 +87,7 @@ async function initDatabaseSchema() {
     )
   `);
 
-  // Три тестовых пользователя
+
   await db.execute(
       "INSERT OR IGNORE INTO users (id, name) VALUES ($1, $2)",
       [0, userName1]
@@ -103,18 +103,15 @@ async function initDatabaseSchema() {
       [2, userName3]
   );
 
-  // Добавляем author_id в старую таблицу messages.
-  // Это понадобится только один раз для существующей БД.
   try {
     await db.execute(`
       ALTER TABLE messages
       ADD COLUMN author_id INTEGER
     `);
   } catch (err) {
-    // Колонка уже существует — ничего страшного.
   }
 
-  // Все старые сообщения считаем сообщениями пользователя 0
+
   await db.execute(`
     UPDATE messages
     SET author_id = 0

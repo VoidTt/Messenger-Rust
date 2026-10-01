@@ -93,10 +93,6 @@ function handleKeydown(event: KeyboardEvent) {
   }
 }
 
-/*
- * Самый простой вариант редактирования:
- * обычное окно prompt().
- */
 function editMessage() {
   if (isImage.value) return;
 
@@ -125,9 +121,6 @@ function editMessage() {
   );
 }
 
-/*
- * Удаление с обычным подтверждением.
- */
 function deleteMessage() {
   const confirmed = window.confirm(
       "Are you sure?"

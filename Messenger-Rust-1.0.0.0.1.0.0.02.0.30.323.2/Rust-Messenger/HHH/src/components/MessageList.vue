@@ -5,7 +5,7 @@ import type { Message } from "../types/message";
 
 const props = defineProps<{
   messages: Message[];
-  currentUserId: number;  //  <--
+  currentUserId: number;
 }>();
 const emit = defineEmits<{
   edit: [id: number, body: string];
