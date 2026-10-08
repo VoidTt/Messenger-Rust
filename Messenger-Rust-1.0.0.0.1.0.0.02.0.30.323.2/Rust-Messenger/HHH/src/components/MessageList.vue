@@ -5,6 +5,7 @@ import type { Message } from "../types/message";
 
 const props = defineProps<{
   messages: Message[];
+  currentUserId: number;
 }>();
 const emit = defineEmits<{
   edit: [id: number, body: string];
@@ -60,14 +61,15 @@ watch(
     >
     </div>
 
-    <MessageBubble
-        v-for="message in messages"
-        :key="message.id"
-        :message="message"
-        @image-loaded="scrollToBottom"
-        @edit="handleEdit"
-        @delete="handleDelete"
-    />
+    <<MessageBubble
+      v-for="message in messages"
+      :key="message.id"
+      :message="message"
+      :current-user-id="currentUserId"
+      @image-loaded="scrollToBottom"
+      @edit="handleEdit"
+      @delete="handleDelete"
+  />
   </div>
 </template>
 

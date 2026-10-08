@@ -6,6 +6,7 @@ import { appLocalDataDir, join } from "@tauri-apps/api/path";
 
 const props = defineProps<{
   message: Message;
+  currentUserId: number;
 }>();
 
 const emit = defineEmits<{
@@ -16,6 +17,14 @@ const emit = defineEmits<{
 
 const isImage = computed(() => {
   return props.message.body.startsWith("__IMAGE__:");
+});
+
+const isMine = computed(() => {
+  return props.message.author_id === props.currentUserId;
+});
+
+const canManage = computed(() => {
+  return props.message.author_id === props.currentUserId;
 });
 
 const imagePath = ref("");
@@ -84,10 +93,6 @@ function handleKeydown(event: KeyboardEvent) {
   }
 }
 
-/*
- * Самый простой вариант редактирования:
- * обычное окно prompt().
- */
 function editMessage() {
   if (isImage.value) return;
 
@@ -116,9 +121,6 @@ function editMessage() {
   );
 }
 
-/*
- * Удаление с обычным подтверждением.
- */
 function deleteMessage() {
   const confirmed = window.confirm(
       "Are you sure?"
@@ -157,7 +159,16 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <article class="message">
+  <article
+      class="message"
+      :class="{
+      mine: isMine,
+      other: !isMine
+    }"
+  >
+    <div class="message-author">
+      {{ message.author }}
+    </div>
 
     <template v-if="isImage">
       <img
@@ -177,12 +188,19 @@ onUnmounted(() => {
 
     <div class="message-actions">
 
-      <button v-if="!isImage" type="button" title="Редактировать" @click.stop="editMessage">
-        R
+      <button v-if="!isImage && canManage"
+              type="button"
+              title="Редактировать"
+              @click.stop="editMessage"
+        >
+        ✏
       </button>
 
-      <button type="button" title="Удалить" @click.stop="deleteMessage">
-        💩
+      <button v-if="canManage"
+              type="button"
+              title="Удалить"
+              @click.stop="deleteMessage">
+        🗑
       </button>
 
     </div>
@@ -226,6 +244,23 @@ onUnmounted(() => {
   padding: 10px 12px;
   border-radius: 10px;
   background: #386be0;
+}
+.message.mine {
+  align-self: flex-end;
+}
+
+.message.other {
+  align-self: flex-start;
+}
+
+.message-author {
+  margin-bottom: 4px;
+
+  font-size: 11px;
+  line-height: 1.2;
+  font-weight: 700;
+
+  color: #cbd7ff;
 }
 
 .message p {

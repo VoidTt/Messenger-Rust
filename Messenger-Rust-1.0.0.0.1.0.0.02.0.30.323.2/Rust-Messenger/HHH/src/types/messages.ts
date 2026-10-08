@@ -7,13 +7,7 @@ export interface User {
 export interface Message {
     id: number;
     author: string;
-    chat_id: number;
     author_id: number;
     body: string;
-}
-
-export interface Chat {
-    id: number;
-    name: string;
-    created_by: number;
+    createdAt: string;
 }
